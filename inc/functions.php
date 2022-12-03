@@ -15,6 +15,9 @@ $microtime_start = microtime(true);
 // the user is not currently logged in as a moderator
 $mod = false;
 
+// include archiver functions here
+require_once 'inc/archive.php';
+
 register_shutdown_function('fatal_error_handler');
 mb_internal_encoding('UTF-8');
 loadConfig();
@@ -541,6 +544,33 @@ function setupBoard($array) {
 	if (!file_exists($board['dir'] . $config['dir']['res']))
 		@mkdir($board['dir'] . $config['dir']['res'], 0777)
 			or error("Couldn't create " . $board['dir'] . $config['dir']['img'] . ". Check permissions.", true);
+
+	// Create Archive Folders
+	if (!file_exists($board['dir'] . $config['dir']['archive']))
+		@mkdir($board['dir'] . $config['dir']['archive'], 0777)
+			or error("Couldn't create " . $board['dir'] . $config['dir']['archive'] . ". Check permissions.", true);
+	if (!file_exists($board['dir'] . $config['dir']['archive'] . $config['dir']['img']))
+		@mkdir($board['dir'] . $config['dir']['archive'] . $config['dir']['img'], 0777)
+			or error("Couldn't create " . $board['dir'] . $config['dir']['archive'] . $config['dir']['img'] . ". Check permissions.", true);
+	if (!file_exists($board['dir'] . $config['dir']['archive'] . $config['dir']['thumb']))
+		@mkdir($board['dir'] . $config['dir']['archive'] . $config['dir']['thumb'], 0777)
+			or error("Couldn't create " . $board['dir'] . $config['dir']['archive'] . $config['dir']['img'] . ". Check permissions.", true);
+	if (!file_exists($board['dir'] . $config['dir']['archive'] . $config['dir']['res']))
+		@mkdir($board['dir'] . $config['dir']['archive'] . $config['dir']['res'], 0777)
+			or error("Couldn't create " . $board['dir'] . $config['dir']['archive'] . $config['dir']['img'] . ". Check permissions.", true);
+	// Create Featured threads Folders
+	if (!file_exists($board['dir'] . $config['dir']['featured']))
+		@mkdir($board['dir'] . $config['dir']['featured'], 0777)
+			or error("Couldn't create " . $board['dir'] . $config['dir']['featured'] . ". Check permissions.", true);
+	if (!file_exists($board['dir'] . $config['dir']['featured'] . $config['dir']['img']))
+		@mkdir($board['dir'] . $config['dir']['featured'] . $config['dir']['img'], 0777)
+			or error("Couldn't create " . $board['dir'] . $config['dir']['featured'] . $config['dir']['img'] . ". Check permissions.", true);
+	if (!file_exists($board['dir'] . $config['dir']['featured'] . $config['dir']['thumb']))
+		@mkdir($board['dir'] . $config['dir']['featured'] . $config['dir']['thumb'], 0777)
+			or error("Couldn't create " . $board['dir'] . $config['dir']['featured'] . $config['dir']['img'] . ". Check permissions.", true);
+	if (!file_exists($board['dir'] . $config['dir']['featured'] . $config['dir']['res']))
+		@mkdir($board['dir'] . $config['dir']['featured'] . $config['dir']['res'], 0777)
+			or error("Couldn't create " . $board['dir'] . $config['dir']['featured'] . $config['dir']['img'] . ". Check permissions.", true);
 }
 
 function openBoard($uri) {
@@ -1309,6 +1339,8 @@ function clean($pid = false) {
 
 	$query->execute() or error(db_error($query));
 	while ($post = $query->fetch(PDO::FETCH_ASSOC)) {
+		Archive::archiveThread($post['id']);
+		if ($pid) modLog("Automatically archived thread #{$post['id']} due to new thread #{$pid}");
 		deletePost($post['id'], false, false);
 		if ($pid) modLog("Automatically deleting thread #{$post['id']} due to new thread #{$pid}");
 	}
@@ -1835,6 +1867,9 @@ function buildIndex($global_api = "yes") {
 		}
 	}
 
+
+	Archive::RebuildArchiveIndexes();
+
 	if ($config['try_smarter'])
 		$build_pages = array();
 }
@@ -2280,6 +2315,16 @@ function markup(&$body, $track_cites = false, $op = false) {
 	$body = str_replace("\t", '		', $body);
 
 	return $tracked_cites;
+}
+
+function archive_list_markup(&$body) {
+
+	$body = str_replace("\r", '', $body);
+	$body = utf8tohtml($body);
+
+	$body = preg_replace("/^\s*&gt;.*$/m", '<span class="quote">$0</span>', $body);
+	// replace tabs with 8 spaces
+	$body = str_replace("\t", '		', $body);
 }
 
 function escape_markup_modifiers($string) {

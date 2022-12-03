@@ -22,6 +22,8 @@
 require dirname(__FILE__) . '/inc/cli.php';
 
 require_once("inc/bans.php");
+require_once("inc/archive.php");
+
 
 $start = microtime(true);
 
@@ -97,6 +99,9 @@ foreach($boards as &$board) {
 			echo "Rebuilding #{$post['id']}...\n";
 		buildThread($post['id']);
 	}
+
+	// Rebuild Archive Index for Board
+	Archive::RebuildArchiveIndexes();
 }
 
 if(!$options['quiet'])
